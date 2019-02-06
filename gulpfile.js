@@ -1,18 +1,17 @@
-var gulp        = require('gulp'),
-    _           = require('lodash'),
-    jpegtran    = require('imagemin-jpegtran'),
-    pngcrush    = require('imagemin-pngcrush'),
-    pngquant    = require('imagemin-pngquant'),
-    svgo        = require('imagemin-svgo'),
-    path        = require('path'),
-    webpack     = require('webpack'),
-    plugins     = require('gulp-load-plugins')({ camelize: true }),
+var _ = require('lodash'),
+    jpegtran = require('imagemin-jpegtran'),
+    pngcrush = require('imagemin-pngcrush'),
+    pngquant = require('imagemin-pngquant'),
+    svgo = require('imagemin-svgo'),
+    path = require('path'),
+    webpack = require('webpack'),
+    plugins = require('gulp-load-plugins')({ camelize: true }),
     browserSync = require('browser-sync').create('browserSync'),
-    reload      = browserSync.reload;
+    reload = browserSync.reload;
 
 var production = !!plugins.util.env.production;
 
-module.exports = function(projectConfig) {
+module.exports = function (projectConfig, gulp) {
     var filePaths = {
         src: {
             fonts: 'inc/fonts/**/*.*',
@@ -36,14 +35,30 @@ module.exports = function(projectConfig) {
 
     _.merge(filePaths, projectConfig);
 
+    var commonChunks = new webpack.optimize.CommonsChunkPlugin({
+        name: 'vendor',
+        // (the commons chunk name)
+
+        filename: 'vendor.js',
+        // (the filename of the commons chunk)
+
+        // minChunks: 3,
+        // (Modules must be shared between 3 entries)
+
+        // chunks: ["pageA", "pageB"],
+        // (Only use these entries)
+    });
+
     var webpackPlugins = {
         development: [
-            new webpack.SourceMapDevToolPlugin()
+            new webpack.SourceMapDevToolPlugin(),
+            commonChunks
         ],
         production: [
             new webpack.optimize.UglifyJsPlugin({
                 comments: false
-            })
+            }),
+            commonChunks
         ]
     };
 
@@ -63,7 +78,7 @@ module.exports = function(projectConfig) {
                 notify: false,
                 proxy: ''
             },
-            csscomb: path.resolve(__dirname, '.csscomb.json'),
+            // csscomb: path.resolve(__dirname, '.csscomb.json'),
             cssnano: {
                 zindex: false
             },
@@ -100,7 +115,13 @@ module.exports = function(projectConfig) {
             },
             webpack: {
                 context: path.resolve(filePaths.src.scriptsDir),
-                entry: './' + filePaths.src.scriptsFilename,
+                entry: {
+                    app: './' + filePaths.src.scriptsFilename,
+                    vendor: ['lazysizes', 'owl.carousel', 'imagesloaded']
+                },
+                externals: {
+                    jquery: 'jQuery'
+                },
                 output: {
                     filename: filePaths.dist.scriptsFilename,
                     path: path.resolve(filePaths.dist.base, filePaths.dist.scripts),
@@ -129,18 +150,18 @@ module.exports = function(projectConfig) {
 
     // Helpers
     var errorHandler = require('./gulp/helpers/error-handler')(plugins),
-        getTask      = require('./gulp/helpers/get-task')(gulp, config, plugins);
+        getTask = require('./gulp/helpers/get-task')(gulp, config, plugins);
 
     // Prune bower and install bower components
-    gulp.task('bower:prune', function(callback) {
+    gulp.task('bower:prune', function (callback) {
         getTask('bower/prune', callback);
     });
-    gulp.task('bower:install', function(callback) {
+    gulp.task('bower:install', function (callback) {
         getTask('bower/install', callback);
     });
 
     // Clean the compiled assets directory
-    gulp.task('clean', function(callback) {
+    gulp.task('clean', function (callback) {
         getTask('clean/clean', callback);
     });
 
@@ -157,13 +178,13 @@ module.exports = function(projectConfig) {
     gulp.task('styles', getTask('styles/build'));
 
     // Pause styles watcher and order scss files using CSScomb
-    gulp.task('styles:comb', getTask('styles/comb'));
+    // gulp.task('styles:comb', getTask('styles/comb'));
 
     // Browsersync
-    gulp.task('serve', function() {
+    gulp.task('serve', function () {
         browserSync.init(config.options.browsersync);
     });
-    gulp.task('reload', function(callback) {
+    gulp.task('reload', function (callback) {
         browserSync.reload();
         callback();
     });
@@ -174,17 +195,16 @@ module.exports = function(projectConfig) {
         'bower:install',
         'fonts',
         'images',
-        'styles:comb',
+        // 'styles:comb',
         'styles',
         'scripts'
     ));
 
-    gulp.task('watch', function() {
+    gulp.task('watch', function () {
         gulp.watch(config.src.fonts, gulp.series('fonts'));
         gulp.watch(config.src.images, gulp.series('images'));
-        gulp.watch(config.src.scripts, gulp.series('scripts', 'reload'));
-        config.styleWatcher = gulp.watch(config.src.styles, gulp.series('styles:comb', 'styles'));
-        gulp.watch(config.src.views, gulp.series('reload'));
+        gulp.watch(config.src.scripts, gulp.series('scripts'));
+        config.styleWatcher = gulp.watch(config.src.styles, gulp.series('styles'));
     });
 
     gulp.task('default', gulp.parallel('build', 'serve', 'watch'));
