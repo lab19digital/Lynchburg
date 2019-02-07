@@ -40,7 +40,9 @@ module.exports = function (projectConfig, gulp) {
     _.merge(filePaths, projectConfig);
 
     var htmlWebpackPlugin = new HtmlWebpackPlugin();
-    var extractCss = new MiniCssExtractPlugin();
+    var extractCss = new MiniCssExtractPlugin({
+        filename: '../css/style.css'
+    });
 
     var webpackPlugins = {
         development: [
