@@ -7,7 +7,10 @@ var _ = require('lodash'),
     webpack = require('webpack'),
     plugins = require('gulp-load-plugins')({ camelize: true }),
     browserSync = require('browser-sync').create('browserSync'),
-    reload = browserSync.reload;
+    reload = browserSync.reload,
+    HtmlWebpackPlugin = require('html-webpack-plugin'),
+    MiniCssExtractPlugin = require("mini-css-extract-plugin"),
+    Critters = require('critters-webpack-plugin');
 
 var production = !!plugins.util.env.production;
 
@@ -21,7 +24,8 @@ module.exports = function (projectConfig, gulp) {
             scriptsFilename: 'app.js',
             styles: 'inc/scss/**/*.scss',
             stylesDir: 'inc/scss',
-            views: 'public/**/*.{html,phtml,php}'
+            views: 'public/**/*.{html,phtml,php}',
+            root: __dirname
         },
         dist: {
             base: 'public/inc/',
@@ -35,30 +39,18 @@ module.exports = function (projectConfig, gulp) {
 
     _.merge(filePaths, projectConfig);
 
-    var commonChunks = new webpack.optimize.CommonsChunkPlugin({
-        name: 'vendor',
-        // (the commons chunk name)
-
-        filename: 'vendor.js',
-        // (the filename of the commons chunk)
-
-        // minChunks: 3,
-        // (Modules must be shared between 3 entries)
-
-        // chunks: ["pageA", "pageB"],
-        // (Only use these entries)
-    });
+    var htmlWebpackPlugin = new HtmlWebpackPlugin();
+    var extractCss = new MiniCssExtractPlugin();
 
     var webpackPlugins = {
         development: [
-            new webpack.SourceMapDevToolPlugin(),
-            commonChunks
+            // new webpack.SourceMapDevToolPlugin(),
+            htmlWebpackPlugin,
+            extractCss
         ],
         production: [
-            new webpack.optimize.UglifyJsPlugin({
-                comments: false
-            }),
-            commonChunks
+            htmlWebpackPlugin,
+            extractCss
         ]
     };
 
@@ -66,6 +58,9 @@ module.exports = function (projectConfig, gulp) {
         src: filePaths.src,
         dist: filePaths.dist,
         production: production,
+        optimization: {
+            minimize: production
+        },
         options: {
             autoprefixer: {
                 browsers: [
@@ -114,39 +109,77 @@ module.exports = function (projectConfig, gulp) {
                 ]
             },
             webpack: {
-                context: path.resolve(filePaths.src.scriptsDir),
+                context: process.cwd(),
                 entry: {
-                    app: './' + filePaths.src.scriptsFilename,
-                    vendor: ['lazysizes', 'owl.carousel', 'imagesloaded']
+                    app: path.join(
+                        filePaths.src.scriptsDir, 
+                        filePaths.src.scriptsFilename
+                    )
                 },
                 externals: {
                     jquery: 'jQuery'
                 },
                 output: {
-                    filename: filePaths.dist.scriptsFilename,
-                    path: path.resolve(filePaths.dist.base, filePaths.dist.scripts),
-                    publicPath: filePaths.src.scriptsDir + '/'
+                    filename: '[name].js',
+                    path: path.join(filePaths.dist.base, 'js'),
+                    publicPath: '/'
                 },
                 module: {
                     rules: [{
                         test: /\.js$/,
-                        exclude: path.resolve(__dirname, '../what-input/dist/what-input.js'),
                         use: [
                             {
                                 loader: 'babel-loader',
                                 options: {
-                                    presets: ['es2015']
+                                    presets: [require.resolve('@babel/preset-env')]
                                 }
                             }
                         ]
                     }],
                 },
-                plugins: production ? webpackPlugins.production : webpackPlugins.development
+                plugins: production ? webpackPlugins.production : webpackPlugins.development,
+                resolve: {
+                    modules: [
+                      path.join(__dirname, 'node_modules'),
+                      path.join(projectConfig.src.root, 'node_modules')
+                    ]
+                },
+                resolveLoader: {
+                    modules: [path.join(__dirname, 'node_modules')]
+                }
             }
         }
     };
 
     var config = _.merge({}, defaultConfig, projectConfig);
+
+    config.options.webpack.module.rules.push({
+        test: /\.scss$/,
+        use: [
+            {
+                loader: MiniCssExtractPlugin.loader
+            },
+
+            {
+                loader: 'css-loader?url=false',
+            },
+            {
+                loader: 'postcss-loader',
+                options: {
+                    ident: 'postcss', // <= this line
+                    plugins: ( loader ) => [
+                        require('cssnano')(config.options.cssnano),
+                        require('autoprefixer')(config.options.autoprefixer),
+                        require('rucksack-css')(config.options.rucksack),
+                    ],
+                    minimize: true
+                }
+            },
+            {
+                loader: 'sass-loader',
+            },
+        ]
+    });
 
     // Helpers
     var errorHandler = require('./gulp/helpers/error-handler')(plugins),
@@ -175,7 +208,7 @@ module.exports = function (projectConfig, gulp) {
     gulp.task('scripts', getTask('scripts/build'));
 
     // Compile styles
-    gulp.task('styles', getTask('styles/build'));
+    // gulp.task('styles', getTask('styles/build'));
 
     // Pause styles watcher and order scss files using CSScomb
     // gulp.task('styles:comb', getTask('styles/comb'));
@@ -196,7 +229,7 @@ module.exports = function (projectConfig, gulp) {
         'fonts',
         'images',
         // 'styles:comb',
-        'styles',
+        // 'styles',
         'scripts'
     ));
 
@@ -204,7 +237,7 @@ module.exports = function (projectConfig, gulp) {
         gulp.watch(config.src.fonts, gulp.series('fonts'));
         gulp.watch(config.src.images, gulp.series('images'));
         gulp.watch(config.src.scripts, gulp.series('scripts'));
-        config.styleWatcher = gulp.watch(config.src.styles, gulp.series('styles'));
+        config.styleWatcher = gulp.watch(config.src.styles, gulp.series('scripts'));
     });
 
     gulp.task('default', gulp.parallel('build', 'serve', 'watch'));
