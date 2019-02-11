@@ -10,11 +10,12 @@ var _ = require('lodash'),
     reload = browserSync.reload,
     HtmlWebpackPlugin = require('html-webpack-plugin'),
     MiniCssExtractPlugin = require("mini-css-extract-plugin"),
-    Critters = require('critters-webpack-plugin');
+    Critters = require('critters-webpack-plugin'),
+    gulp = require('gulp');
 
 var production = !!plugins.util.env.production;
 
-module.exports = function (projectConfig, gulp) {
+module.exports = function (projectConfig) {
     var filePaths = {
         src: {
             fonts: 'inc/fonts/**/*.*',
@@ -131,7 +132,7 @@ module.exports = function (projectConfig, gulp) {
                         test: /\.js$/,
                         use: [
                             {
-                                loader: require.resolve('babel-loader'),
+                                loader: 'babel-loader',
                                 options: {
                                     presets: [require.resolve('@babel/preset-env')]
                                 }
@@ -147,7 +148,7 @@ module.exports = function (projectConfig, gulp) {
                     ]
                 },
                 resolveLoader: {
-                    modules: [path.join(__dirname, 'node_modules')]
+                    modules: [ path.dirname(__dirname) ]
                 }
             }
         }
@@ -158,12 +159,12 @@ module.exports = function (projectConfig, gulp) {
     config.options.webpack.module.rules.push({
         test: /\.scss$/,
         use: [
-            {
-                loader: MiniCssExtractPlugin.loader
-            },
+            
+            MiniCssExtractPlugin.loader,
 
             {
-                loader: 'css-loader?url=false',
+                loader: 'css-loader',
+                options: { url: false }
             },
             {
                 loader: 'postcss-loader',
@@ -182,6 +183,8 @@ module.exports = function (projectConfig, gulp) {
             },
         ]
     });
+
+    console.log(config.options.webpack.module.rules[1].use);
 
     // Helpers
     var errorHandler = require('./gulp/helpers/error-handler')(plugins),
