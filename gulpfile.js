@@ -42,7 +42,7 @@ module.exports = function (projectConfig) {
 
     var htmlWebpackPlugin = new HtmlWebpackPlugin();
     var extractCss = new MiniCssExtractPlugin({
-        filename: '../css/style.css'
+        filename: '../css/styles.css'
     });
 
     var webpackPlugins = {
