@@ -232,7 +232,7 @@ module.exports = function (projectConfig) {
         'fonts',
         'images',
         // 'styles:comb',
-        // 'styles',
+        'styles',
         'scripts'
     ));
 
@@ -240,7 +240,7 @@ module.exports = function (projectConfig) {
         gulp.watch(config.src.fonts, gulp.series('fonts'));
         gulp.watch(config.src.images, gulp.series('images'));
         gulp.watch(config.src.scripts, gulp.series('scripts'));
-        config.styleWatcher = gulp.watch(config.src.styles, gulp.series('scripts'));
+        config.styleWatcher = gulp.watch(config.src.styles, gulp.series('styles'));
     });
 
     gulp.task('default', gulp.parallel('build', 'serve', 'watch'));
