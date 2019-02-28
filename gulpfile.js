@@ -115,7 +115,7 @@ module.exports = function (projectConfig) {
                 context: process.cwd(),
                 entry: {
                     app: path.join(
-                        filePaths.src.scriptsDir, 
+                        filePaths.src.scriptsDir,
                         filePaths.src.scriptsFilename
                     )
                 },
@@ -143,12 +143,12 @@ module.exports = function (projectConfig) {
                 plugins: production ? webpackPlugins.production : webpackPlugins.development,
                 resolve: {
                     modules: [
-                      path.join(__dirname, 'node_modules'),
-                      path.join(projectConfig.src.root, 'node_modules')
+                        path.join(__dirname, 'node_modules'),
+                        path.join(projectConfig.src.root, 'node_modules')
                     ]
                 },
                 resolveLoader: {
-                    modules: [ path.dirname(__dirname) ]
+                    modules: [path.dirname(__dirname)]
                 }
             }
         }
@@ -159,7 +159,7 @@ module.exports = function (projectConfig) {
     config.options.webpack.module.rules.push({
         test: /\.scss$/,
         use: [
-            
+
             MiniCssExtractPlugin.loader,
 
             {
@@ -170,7 +170,7 @@ module.exports = function (projectConfig) {
                 loader: 'postcss-loader',
                 options: {
                     ident: 'postcss', // <= this line
-                    plugins: ( loader ) => [
+                    plugins: (loader) => [
                         require('cssnano')(config.options.cssnano),
                         require('autoprefixer')(config.options.autoprefixer),
                         require('rucksack-css')(config.options.rucksack),
@@ -183,8 +183,6 @@ module.exports = function (projectConfig) {
             },
         ]
     });
-
-    console.log(config.options.webpack.module.rules[1].use);
 
     // Helpers
     var errorHandler = require('./gulp/helpers/error-handler')(plugins),
@@ -213,7 +211,7 @@ module.exports = function (projectConfig) {
     gulp.task('scripts', getTask('scripts/build'));
 
     // Compile styles
-    // gulp.task('styles', getTask('styles/build'));
+    gulp.task('styles', getTask('styles/build'));
 
     // Pause styles watcher and order scss files using CSScomb
     // gulp.task('styles:comb', getTask('styles/comb'));
