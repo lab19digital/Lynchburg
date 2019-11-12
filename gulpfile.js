@@ -130,6 +130,7 @@ module.exports = function (projectConfig) {
                 module: {
                     rules: [{
                         test: /\.js$/,
+                        exclude: /@babel(?:\/|\\{1,2})runtime|core-js/,
                         use: [
                             {
                                 loader: 'babel-loader',
